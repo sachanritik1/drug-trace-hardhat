@@ -172,4 +172,8 @@ contract SupplyChain {
 	) public view lotExists(_lotId) returns (Lot memory) {
 		return lots[_lotId];
 	}
+
+	function getOwner() public view returns (address) {
+		return owner;
+	}
 }
