@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
-contract DrugSupplyChain {
+contract SupplyChain {
 	address public owner;
 
 	mapping(address => bool) public isManufacturer;
@@ -69,7 +69,7 @@ contract DrugSupplyChain {
 	event DrugCreated(uint256 drugId);
 	event DrugShipped(uint256 drugId);
 	event DrugReceived(uint256 drugId);
-	event DrugSold(uint256 drugId, address patient);
+	event DrugBought(uint256 drugId);
 
 	constructor() {
 		owner = msg.sender;
@@ -110,26 +110,23 @@ contract DrugSupplyChain {
 		emit DrugCreated(drugCount);
 	}
 
-	function shipDrug(
-		uint256 _drugId,
-		address _distributor
-	) public onlyDistributor {
+	function shipDrug(uint256 _drugId) public onlyDistributor {
 		require(
 			drugs[_drugId].state == DrugState.Created,
-			"Drug has already been shipped or received"
+			"Drug has not been created or already been shipped"
 		);
-		drugs[_drugId].distributor = _distributor;
+		drugs[_drugId].distributor = msg.sender;
 		drugs[_drugId].state = DrugState.Shipped;
 
 		emit DrugShipped(_drugId);
 	}
 
-	function receiveDrug(uint256 _drugId, address _pharmacy) public onlyPharmacy {
+	function receiveDrug(uint256 _drugId) public onlyPharmacy {
 		require(
 			drugs[_drugId].state == DrugState.Shipped,
 			"Drug has not been shipped yet"
 		);
-		drugs[_drugId].pharmacy = _pharmacy;
+		drugs[_drugId].pharmacy = msg.sender;
 		drugs[_drugId].state = DrugState.Received;
 
 		emit DrugReceived(_drugId);
@@ -144,13 +141,37 @@ contract DrugSupplyChain {
 
 		drugs[_drugId].patient = msg.sender;
 		drugs[_drugId].quantity--;
-		emit DrugSold(_drugId, msg.sender);
+		emit DrugBought(_drugId);
 	}
 
 	//getter functions
 
-	function getDrug(uint256 _drugId) public view returns (Drug memory) {
-		return drugs[_drugId];
+	function getDrugName(uint256 _drugId) public view returns (string memory) {
+		return drugs[_drugId].name;
+	}
+
+	function getDrugQuantity(uint256 _drugId) public view returns (uint256) {
+		return drugs[_drugId].quantity;
+	}
+
+	function getDrugManufacturer(uint256 _drugId) public view returns (address) {
+		return drugs[_drugId].manufacturer;
+	}
+
+	function getDrugDistributor(uint256 _drugId) public view returns (address) {
+		return drugs[_drugId].distributor;
+	}
+
+	function getDrugPharmacy(uint256 _drugId) public view returns (address) {
+		return drugs[_drugId].pharmacy;
+	}
+
+	function getDrugPatient(uint256 _drugId) public view returns (address) {
+		return drugs[_drugId].patient;
+	}
+
+	function getDrugState(uint256 _drugId) public view returns (DrugState) {
+		return drugs[_drugId].state;
 	}
 
 	function getDrugCount() public view returns (uint256) {
