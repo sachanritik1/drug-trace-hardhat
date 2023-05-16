@@ -198,7 +198,10 @@ const { assert, expect } = require("chai")
 						supplyChain,
 						"DrugBought"
 					)
-
+					assert.equal(
+						(await supplyChain.getDrugToPatient(0))[0],
+						pataint.address
+					)
 					assert.equal(await supplyChain.getDrugQuantity(0), 99)
 					assert.equal(await supplyChain.getDrugPatient(0), pataint.address)
 				})

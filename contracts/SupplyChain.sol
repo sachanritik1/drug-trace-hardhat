@@ -8,6 +8,7 @@ contract SupplyChain {
 	mapping(address => bool) public isDistributor;
 	mapping(address => bool) public isPharmacy;
 	mapping(address => bool) public isPatient;
+	mapping(uint256 => address[]) public drugToPatient;
 
 	enum DrugState {
 		Created,
@@ -17,6 +18,7 @@ contract SupplyChain {
 	}
 
 	struct Drug {
+		uint256 id;
 		string name;
 		uint256 quantity;
 		address manufacturer;
@@ -27,7 +29,7 @@ contract SupplyChain {
 	}
 
 	mapping(uint256 => Drug) public drugs;
-	uint256 public drugCount;
+	uint256 public drugCount = 0;
 
 	modifier onlyOwner() {
 		require(msg.sender == owner, "Only contract owner can perform this action");
@@ -98,6 +100,7 @@ contract SupplyChain {
 		require(_quantity > 0, "Quantity should be greater than zero");
 
 		drugs[drugCount] = Drug({
+			id: drugCount,
 			name: _name,
 			quantity: _quantity,
 			manufacturer: msg.sender,
@@ -141,6 +144,7 @@ contract SupplyChain {
 
 		drugs[_drugId].patient = msg.sender;
 		drugs[_drugId].quantity--;
+		drugToPatient[_drugId].push(msg.sender);
 		emit DrugBought(_drugId);
 	}
 
@@ -192,5 +196,11 @@ contract SupplyChain {
 
 	function IsPatient(address _patient) public view returns (bool) {
 		return isPatient[_patient];
+	}
+
+	function getDrugToPatient(
+		uint256 _drugId
+	) public view returns (address[] memory) {
+		return drugToPatient[_drugId];
 	}
 }
