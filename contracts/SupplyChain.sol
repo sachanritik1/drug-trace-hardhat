@@ -1,179 +1,175 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity ^0.8.8;
+pragma solidity ^0.8.0;
 
-//errors
+contract DrugSupplyChain {
+	address public owner;
 
-error SupplyChain__NotOwner();
-error SupplyChain__LotAlreadyExists();
-error SupplyChain__LotDoesNOtExist();
-error SupplyChain__NotDistributor();
-error SupplyChain__NotManufacturer();
-error SupplyChain__NotEnoughETHSent();
+	mapping(address => bool) public isManufacturer;
+	mapping(address => bool) public isDistributor;
+	mapping(address => bool) public isPharmacy;
+	mapping(address => bool) public isPatient;
 
-//create a smart contract which tracks the supply chain of a drug from the manufacturer to the patient
-contract SupplyChain {
+	enum DrugState {
+		Created,
+		Shipped,
+		Received,
+		Sold
+	}
+
+	struct Drug {
+		string name;
+		uint256 quantity;
+		address manufacturer;
+		address distributor;
+		address pharmacy;
+		address patient;
+		DrugState state;
+	}
+
+	mapping(uint256 => Drug) public drugs;
+	uint256 public drugCount;
+
+	modifier onlyOwner() {
+		require(msg.sender == owner, "Only contract owner can perform this action");
+		_;
+	}
+
+	modifier onlyManufacturer() {
+		require(
+			isManufacturer[msg.sender],
+			"Only approved manufacturers can perform this action"
+		);
+		_;
+	}
+
+	modifier onlyDistributor() {
+		require(
+			isDistributor[msg.sender],
+			"Only approved distributors can perform this action"
+		);
+		_;
+	}
+
+	modifier onlyPharmacy() {
+		require(
+			isPharmacy[msg.sender],
+			"Only approved pharmacies can perform this action"
+		);
+		_;
+	}
+
+	modifier onlyPatient() {
+		require(
+			isPatient[msg.sender],
+			"Only approved patients can perform this action"
+		);
+		_;
+	}
+
+	event DrugCreated(uint256 drugId);
+	event DrugShipped(uint256 drugId);
+	event DrugReceived(uint256 drugId);
+	event DrugSold(uint256 drugId, address patient);
+
 	constructor() {
-		//set the owner of the contract
 		owner = msg.sender;
 	}
 
-	enum LotStatus {
-		Manufactured,
-		SenttoDistributor,
-		ReceivedbyDistributor,
-		ShippedtoPharmacy,
-		ReceivedbyPharmacy,
-		PurchasedbyPatient
+	function addManufacturer(address _manufacturer) public onlyOwner {
+		isManufacturer[_manufacturer] = true;
 	}
 
-	struct Lot {
-		uint256 lotId;
-		address currentOwner;
-		string drugName;
-		address manufacturer;
-		address distributor;
-		uint256 quantity;
-		uint256 price;
-		LotStatus status;
+	function addDistributor(address _distributor) public onlyOwner {
+		isDistributor[_distributor] = true;
 	}
 
-	//mapping from lotId to Lot
-	mapping(uint256 => Lot) public lots;
-
-	//state variables
-	address public immutable owner;
-
-	//events
-	event SuppyChain__LotCreated(
-		uint256 lotId,
-		address currentOwner,
-		string drugName,
-		address manufacturer,
-		address distributor,
-		uint256 quantity,
-		uint256 price
-	);
-
-	event SupplyChain__SenttoDistributor(uint256 lotId);
-
-	event SupplyChain__ReceivedbyDistributor(uint256 lotId);
-
-	event SupplyChain__ShippedtoPharmacy(uint256 lotId);
-
-	event SupplyChain__ReceivedbyPharmacy(uint256 lotId);
-
-	event SupplyChain__LotBought(address currentOwner, uint256 lotId);
-
-	//modifers
-
-	modifier onlyOwner(address _owner) {
-		//check if the caller is the owner of the contract
-		if (owner != _owner) {
-			revert SupplyChain__NotOwner();
-		}
-		_;
+	function addPharmacy(address _pharmacy) public onlyOwner {
+		isPharmacy[_pharmacy] = true;
 	}
 
-	modifier onlyCurrentOwner(address _currenrOwner, uint256 _lotId) {
-		//check if the caller is the owner of the contract
-		if (_currenrOwner != lots[_lotId].currentOwner) {
-			revert SupplyChain__NotOwner();
-		}
-		_;
+	function addPatient(address _patient) public onlyOwner {
+		isPatient[_patient] = true;
 	}
 
-	modifier lotExists(uint256 _lotId) {
-		//check if the lotId exists
-		if (lots[_lotId].lotId != _lotId) {
-			revert SupplyChain__LotDoesNOtExist();
-		}
-		_;
-	}
+	function createDrug(
+		string memory _name,
+		uint256 _quantity
+	) public onlyManufacturer {
+		require(_quantity > 0, "Quantity should be greater than zero");
 
-	modifier lotNotExist(uint256 _lotId) {
-		//check if the lotId exists
-		if (lots[_lotId].lotId == _lotId) {
-			revert SupplyChain__LotAlreadyExists();
-		}
-		_;
-	}
-
-	//create a function to add a new lot
-	function createLot(
-		uint256 _lotId,
-		string memory _drugName,
-		address _manufacturer,
-		address _distributor,
-		uint256 _quantity,
-		uint256 _price
-	) public payable onlyOwner(msg.sender) lotNotExist(_lotId) {
-		//create a new lot
-		Lot memory newLot = Lot({
-			lotId: _lotId,
-			currentOwner: msg.sender,
-			drugName: _drugName,
-			manufacturer: _manufacturer,
-			distributor: _distributor,
+		drugs[drugCount] = Drug({
+			name: _name,
 			quantity: _quantity,
-			price: _price,
-			status: LotStatus.Manufactured
+			manufacturer: msg.sender,
+			distributor: address(0),
+			pharmacy: address(0),
+			patient: address(0),
+			state: DrugState.Created
 		});
-
-		//add the lot to the mapping
-		lots[_lotId] = newLot;
-		emit SuppyChain__LotCreated(
-			_lotId,
-			msg.sender,
-			_drugName,
-			msg.sender,
-			_distributor,
-			_quantity,
-			_price
-		);
+		drugCount++;
+		emit DrugCreated(drugCount);
 	}
 
-	//create a function to send the distributor
-	function handOverToDistributor(
-		uint256 _lotId,
+	function shipDrug(
+		uint256 _drugId,
 		address _distributor
-	) public payable onlyCurrentOwner(msg.sender, _lotId) lotExists(_lotId) {
-		lots[_lotId].status = LotStatus.SenttoDistributor;
-		lots[_lotId].currentOwner = _distributor;
-		emit SupplyChain__SenttoDistributor(_lotId);
+	) public onlyDistributor {
+		require(
+			drugs[_drugId].state == DrugState.Created,
+			"Drug has already been shipped or received"
+		);
+		drugs[_drugId].distributor = _distributor;
+		drugs[_drugId].state = DrugState.Shipped;
+
+		emit DrugShipped(_drugId);
 	}
 
-	//create a function to distribute the drug to the pharmacy and update the status
-	function distributeDrug(
-		uint256 _lotId
-	) public payable onlyCurrentOwner(msg.sender, _lotId) lotExists(_lotId) {
-		lots[_lotId].status = LotStatus.ReceivedbyDistributor;
-		emit SupplyChain__ReceivedbyDistributor(_lotId);
-		lots[_lotId].status = LotStatus.ShippedtoPharmacy;
-		emit SupplyChain__ShippedtoPharmacy(_lotId);
+	function receiveDrug(uint256 _drugId, address _pharmacy) public onlyPharmacy {
+		require(
+			drugs[_drugId].state == DrugState.Shipped,
+			"Drug has not been shipped yet"
+		);
+		drugs[_drugId].pharmacy = _pharmacy;
+		drugs[_drugId].state = DrugState.Received;
+
+		emit DrugReceived(_drugId);
 	}
 
-	//create a function which allows patients to buy lots
-	function buyLot(uint256 _lotId) public payable lotExists(_lotId) {
-		lots[_lotId].status = LotStatus.ReceivedbyPharmacy;
-		emit SupplyChain__ReceivedbyPharmacy(_lotId);
+	function buyDrug(uint256 _drugId) public onlyPatient {
+		require(
+			drugs[_drugId].state == DrugState.Received,
+			"Drug is not available for purchase"
+		);
+		require(drugs[_drugId].quantity > 0, "Drug is out of stock");
 
-		if (msg.value < lots[_lotId].price) {
-			revert SupplyChain__NotEnoughETHSent();
-		}
-
-		lots[_lotId].currentOwner = msg.sender;
-		lots[_lotId].status = LotStatus.PurchasedbyPatient;
-		emit SupplyChain__LotBought(msg.sender, _lotId);
+		drugs[_drugId].patient = msg.sender;
+		drugs[_drugId].quantity--;
+		emit DrugSold(_drugId, msg.sender);
 	}
 
-	//create a function to get the lot details
-	function getLotDetails(
-		uint256 _lotId
-	) public view lotExists(_lotId) returns (Lot memory) {
-		return lots[_lotId];
+	//getter functions
+
+	function getDrug(uint256 _drugId) public view returns (Drug memory) {
+		return drugs[_drugId];
 	}
 
-	function getOwner() public view returns (address) {
-		return owner;
+	function getDrugCount() public view returns (uint256) {
+		return drugCount;
+	}
+
+	function IsManufacturer(address _manufacturer) public view returns (bool) {
+		return isManufacturer[_manufacturer];
+	}
+
+	function IsDistributor(address _distributor) public view returns (bool) {
+		return isDistributor[_distributor];
+	}
+
+	function IsPharmacy(address _pharmacy) public view returns (bool) {
+		return isPharmacy[_pharmacy];
+	}
+
+	function IsPatient(address _patient) public view returns (bool) {
+		return isPatient[_patient];
 	}
 }
