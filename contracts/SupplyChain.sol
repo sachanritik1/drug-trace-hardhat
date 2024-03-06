@@ -1,206 +1,227 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
-contract SupplyChain {
-	address public owner;
+contract Supplychain {
+  address public owner;
 
-	mapping(address => bool) public isManufacturer;
-	mapping(address => bool) public isDistributor;
-	mapping(address => bool) public isPharmacy;
-	mapping(address => bool) public isPatient;
-	mapping(uint256 => address[]) public drugToPatient;
+  mapping(address => bool) public isManufacturer;
+  mapping(address => bool) public isDistributor;
+  mapping(address => bool) public isPharmacy;
+  mapping(address => bool) public isPatient;
+  mapping(uint256 => Drug) public drugs;
+  mapping(uint256 => Lot) public lots;
+  mapping(uint256 => address[]) public lotToPatient;
+  mapping(uint256 => ingredientToComposition[])
+    public drugIngredientCompositions;
 
-	enum DrugState {
-		Created,
-		Shipped,
-		Received,
-		Sold
-	}
+  uint256[] public drugIds;
+  uint256[] public lotIds;
 
-	struct Drug {
-		uint256 id;
-		string name;
-		uint256 quantity;
-		address manufacturer;
-		address distributor;
-		address pharmacy;
-		address patient;
-		DrugState state;
-	}
+  enum DrugState {
+    Formulated,
+    Approved
+  }
 
-	mapping(uint256 => Drug) public drugs;
-	uint256 public drugCount = 0;
+  enum LotState {
+    Manufactured,
+    Shipped,
+    Received
+  }
 
-	modifier onlyOwner() {
-		require(msg.sender == owner, "Only contract owner can perform this action");
-		_;
-	}
+  struct ingredientToComposition {
+    string ingredient;
+    uint256 composition;
+  }
 
-	modifier onlyManufacturer() {
-		require(
-			isManufacturer[msg.sender],
-			"Only approved manufacturers can perform this action"
-		);
-		_;
-	}
+  struct Drug {
+    uint256 id;
+    string name;
+    DrugState state;
+  }
 
-	modifier onlyDistributor() {
-		require(
-			isDistributor[msg.sender],
-			"Only approved distributors can perform this action"
-		);
-		_;
-	}
+  struct Lot {
+    uint256 id;
+    uint256 drugId;
+    string name;
+    uint256 quantity;
+    address manufacturer;
+    address distributor;
+    address pharmacy;
+    LotState state;
+  }
 
-	modifier onlyPharmacy() {
-		require(
-			isPharmacy[msg.sender],
-			"Only approved pharmacies can perform this action"
-		);
-		_;
-	}
+  modifier onlyOwner() {
+    require(msg.sender == owner, "Only contract owner can perform this action");
+    _;
+  }
 
-	modifier onlyPatient() {
-		require(
-			isPatient[msg.sender],
-			"Only approved patients can perform this action"
-		);
-		_;
-	}
+  modifier onlyManufacturer() {
+    require(
+      isManufacturer[msg.sender],
+      "Only approved manufacturers can perform this action"
+    );
+    _;
+  }
 
-	event DrugCreated(uint256 drugId);
-	event DrugShipped(uint256 drugId);
-	event DrugReceived(uint256 drugId);
-	event DrugBought(uint256 drugId);
+  modifier onlyDistributor() {
+    require(
+      isDistributor[msg.sender],
+      "Only approved distributors can perform this action"
+    );
+    _;
+  }
 
-	constructor() {
-		owner = msg.sender;
-	}
+  modifier onlyPharmacy() {
+    require(
+      isPharmacy[msg.sender],
+      "Only approved pharmacies can perform this action"
+    );
+    _;
+  }
 
-	function addManufacturer(address _manufacturer) public onlyOwner {
-		isManufacturer[_manufacturer] = true;
-	}
+  modifier onlyPatient() {
+    require(
+      isPatient[msg.sender],
+      "Only approved patients can perform this action"
+    );
+    _;
+  }
 
-	function addDistributor(address _distributor) public onlyOwner {
-		isDistributor[_distributor] = true;
-	}
+  event DrugFormulated(uint256 drugId);
+  event DrugApproved(uint256 drugId);
+  event LotManufactured(uint256 LotId);
+  event LotShipped(uint256 LotId);
+  event LotReceived(uint256 LotId);
+  event MedicineBought(uint256 LotId);
 
-	function addPharmacy(address _pharmacy) public onlyOwner {
-		isPharmacy[_pharmacy] = true;
-	}
+  constructor() {
+    owner = msg.sender;
+  }
 
-	function addPatient(address _patient) public onlyOwner {
-		isPatient[_patient] = true;
-	}
+  function addManufacturer(address _manufacturer) public onlyOwner {
+    isManufacturer[_manufacturer] = true;
+  }
 
-	function createDrug(
-		string memory _name,
-		uint256 _quantity
-	) public onlyManufacturer {
-		require(_quantity > 0, "Quantity should be greater than zero");
+  function addDistributor(address _distributor) public onlyOwner {
+    isDistributor[_distributor] = true;
+  }
 
-		drugs[drugCount] = Drug({
-			id: drugCount,
-			name: _name,
-			quantity: _quantity,
-			manufacturer: msg.sender,
-			distributor: address(0),
-			pharmacy: address(0),
-			patient: address(0),
-			state: DrugState.Created
-		});
-		drugCount++;
-		emit DrugCreated(drugCount);
-	}
+  function addPharmacy(address _pharmacy) public onlyOwner {
+    isPharmacy[_pharmacy] = true;
+  }
 
-	function shipDrug(uint256 _drugId) public onlyDistributor {
-		require(
-			drugs[_drugId].state == DrugState.Created,
-			"Drug has not been created or already been shipped"
-		);
-		drugs[_drugId].distributor = msg.sender;
-		drugs[_drugId].state = DrugState.Shipped;
+  function addPatient(address _patient) public onlyOwner {
+    isPatient[_patient] = true;
+  }
 
-		emit DrugShipped(_drugId);
-	}
+  function formulateDrug(
+    string memory _name,
+    ingredientToComposition[] memory _ingredients
+  ) public onlyManufacturer returns (uint256) {
+    uint256 id = generateUniqueID();
+    drugIds.push(id);
+    for (uint i = 0; i < _ingredients.length; i++) {
+      drugIngredientCompositions[id].push(_ingredients[i]);
+    }
+    drugs[id] = Drug({ id: id, name: _name, state: DrugState.Formulated });
+    emit DrugFormulated(id);
+    return id;
+  }
 
-	function receiveDrug(uint256 _drugId) public onlyPharmacy {
-		require(
-			drugs[_drugId].state == DrugState.Shipped,
-			"Drug has not been shipped yet"
-		);
-		drugs[_drugId].pharmacy = msg.sender;
-		drugs[_drugId].state = DrugState.Received;
+  function approveDrug(uint256 _drugId) public onlyOwner {
+    drugs[_drugId].state = DrugState.Approved;
+    emit DrugApproved(_drugId);
+  }
 
-		emit DrugReceived(_drugId);
-	}
+  function manufacturLot(
+    string memory _name,
+    uint256 _quantity,
+    uint256 _drugId
+  ) public onlyManufacturer returns (uint256) {
+    require(
+      drugs[_drugId].state == DrugState.Approved,
+      "Drug must be approved before manufacturing"
+    );
+    require(_quantity > 0, "Quantity should be greater than zero");
+    uint256 id = generateUniqueID();
+    lotIds.push(id);
+    lots[id] = Lot({
+      id: id,
+      drugId: _drugId,
+      name: _name,
+      quantity: _quantity,
+      manufacturer: msg.sender,
+      distributor: address(0),
+      pharmacy: address(0),
+      state: LotState.Manufactured
+    });
+    emit LotManufactured(id);
+    return id;
+  }
 
-	function buyDrug(uint256 _drugId) public onlyPatient {
-		require(
-			drugs[_drugId].state == DrugState.Received,
-			"Drug is not available for purchase"
-		);
-		require(drugs[_drugId].quantity > 0, "Drug is out of stock");
+  function shipLot(uint256 _lotId) public onlyDistributor {
+    require(
+      lots[_lotId].state == LotState.Manufactured,
+      "Drug has not been created or already been shipped"
+    );
+    lots[_lotId].distributor = msg.sender;
+    lots[_lotId].state = LotState.Shipped;
 
-		drugs[_drugId].patient = msg.sender;
-		drugs[_drugId].quantity--;
-		drugToPatient[_drugId].push(msg.sender);
-		emit DrugBought(_drugId);
-	}
+    emit LotShipped(_lotId);
+  }
 
-	//getter functions
+  function receiveDrug(uint256 _lotId) public onlyPharmacy {
+    require(
+      lots[_lotId].state == LotState.Shipped,
+      "Drug has not been shipped yet"
+    );
+    lots[_lotId].pharmacy = msg.sender;
+    lots[_lotId].state = LotState.Received;
+    emit LotReceived(_lotId);
+  }
 
-	function getDrugName(uint256 _drugId) public view returns (string memory) {
-		return drugs[_drugId].name;
-	}
+  function buyMedicine(uint256 _lotId) public onlyPatient {
+    require(
+      lots[_lotId].state == LotState.Received,
+      "Drug is not available for purchase"
+    );
+    require(lots[_lotId].quantity > 0, "Drug is out of stock");
+    lots[_lotId].quantity--;
+    lotToPatient[_lotId].push(msg.sender);
+    emit MedicineBought(_lotId);
+  }
 
-	function getDrugQuantity(uint256 _drugId) public view returns (uint256) {
-		return drugs[_drugId].quantity;
-	}
+  //getter functions
 
-	function getDrugManufacturer(uint256 _drugId) public view returns (address) {
-		return drugs[_drugId].manufacturer;
-	}
+  function getDrugById(uint256 _drugId) public view returns (Drug memory) {
+    return drugs[_drugId];
+  }
 
-	function getDrugDistributor(uint256 _drugId) public view returns (address) {
-		return drugs[_drugId].distributor;
-	}
+  function getLotById(uint256 _lotId) public view returns (Lot memory) {
+    return lots[_lotId];
+  }
 
-	function getDrugPharmacy(uint256 _drugId) public view returns (address) {
-		return drugs[_drugId].pharmacy;
-	}
+  function getDrugIds() public view returns (uint256[] memory) {
+    return drugIds;
+  }
 
-	function getDrugPatient(uint256 _drugId) public view returns (address) {
-		return drugs[_drugId].patient;
-	}
+  function getLotIds() public view returns (uint256[] memory) {
+    return lotIds;
+  }
 
-	function getDrugState(uint256 _drugId) public view returns (DrugState) {
-		return drugs[_drugId].state;
-	}
+  // utility functions
 
-	function getDrugCount() public view returns (uint256) {
-		return drugCount;
-	}
-
-	function IsManufacturer(address _manufacturer) public view returns (bool) {
-		return isManufacturer[_manufacturer];
-	}
-
-	function IsDistributor(address _distributor) public view returns (bool) {
-		return isDistributor[_distributor];
-	}
-
-	function IsPharmacy(address _pharmacy) public view returns (bool) {
-		return isPharmacy[_pharmacy];
-	}
-
-	function IsPatient(address _patient) public view returns (bool) {
-		return isPatient[_patient];
-	}
-
-	function getDrugToPatient(
-		uint256 _drugId
-	) public view returns (address[] memory) {
-		return drugToPatient[_drugId];
-	}
+  function generateUniqueID() private view returns (uint256) {
+    return
+      uint256(
+        keccak256(
+          abi.encodePacked(
+            block.timestamp,
+            msg.sender,
+            block.difficulty,
+            blockhash(block.number - 1)
+          )
+        )
+      );
+  }
 }
