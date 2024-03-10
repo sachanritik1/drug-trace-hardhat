@@ -7,8 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Register{
-  public_address String
-  role String 
-  @@id([public_address, role])
+model Request {
+  address String @id
+  role Role
+  approved Boolean @default(false)
+  
 }
+
+enum Role {
+  MANUFACTURER
+  DISTRIBUTOR
+  PHARMACY
+  PATEINT
+}
+
+

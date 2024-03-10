@@ -3,10 +3,11 @@
 import { connectToMetaMask } from "@/utils/helper";
 import { ethers } from "ethers";
 import ABI from "@/assets/abi/Supplychain.json";
+import { approveUser } from "@/app/actions";
 
 type Request = {
   role: string;
-  public_address: string;
+  address: string;
 };
 
 export default function Approve({ request }: { request: Request }) {
@@ -15,27 +16,28 @@ export default function Approve({ request }: { request: Request }) {
       const provider = await connectToMetaMask();
       if (!provider) return;
       const signer = await provider.getSigner();
-      const userAddress = signer.address;
       const supplychain = new ethers.Contract(
         "0xFAc3c795f09bC2ccC38071d3C428a74442132AB7",
         ABI,
         signer
       );
       let res;
-      if (request.role === "Manufacturer") {
-        res = await supplychain.addManufacturer(request.public_address);
-      } else if (request.role === "Distributor") {
-        res = await supplychain.addDistributor(request.public_address);
-      } else if (request.role === "Patient") {
-        res = await supplychain.addPatient(request.public_address);
-      } else if (request.role === "Pharmacy") {
-        res = await supplychain.addPharmacy(request.public_address);
+      const role = request.role.toLowerCase();
+      if (role === "manufacturer") {
+        res = await supplychain.addManufacturer(request.address);
+      } else if (role === "distributor") {
+        res = await supplychain.addDistributor(request.address);
+      } else if (role === "patient") {
+        res = await supplychain.addPatient(request.address);
+      } else if (role === "pharmacy") {
+        res = await supplychain.addPharmacy(request.address);
       } else {
         console.log("Invalid role");
         return;
       }
       await res.wait();
       console.log(res);
+      await approveUser(request.address);
     } catch (error) {
       console.log("Error calling function:", error);
     }

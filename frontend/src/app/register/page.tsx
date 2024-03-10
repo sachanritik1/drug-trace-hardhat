@@ -3,9 +3,12 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { registerUser } from "../actions";
 import { connectToMetaMask } from "@/utils/helper";
+import { $Enums } from "@prisma/client";
+
+const roles = Object.values($Enums.Role);
 
 export default function Register() {
-  const [role, setRole] = React.useState<string>("Manufacturer");
+  const [role, setRole] = React.useState<$Enums.Role>($Enums.Role.MANUFACTURER);
   const router = useRouter();
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,12 +44,12 @@ export default function Register() {
               id="role"
               name="role"
               className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              onChange={(e) => setRole(e.target.value)}
             >
-              <option value="manufacturer">Manufacturer</option>
-              <option value="distributor">Distributor</option>
-              <option value="pharmacy">Pharmacy</option>
-              <option value="patient">Patient</option>
+              {roles.map((r) => (
+                <option key={r} value={r} onClick={() => setRole(r)}>
+                  {r}
+                </option>
+              ))}
             </select>
           </div>
           <button
