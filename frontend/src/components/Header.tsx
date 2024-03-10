@@ -3,29 +3,12 @@ import { ethers } from "ethers";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import ABI from "@/assets/abi/Supplychain.json";
-import { useRouter } from "next/navigation";
-import { providerAtom } from "@/store/atoms";
-
-async function connectToMetaMask() {
-  const ethereum = (window as any).ethereum;
-
-  if (typeof ethereum !== "undefined") {
-    try {
-      await ethereum.request({ method: "eth_requestAccounts" });
-      const provider = new ethers.BrowserProvider(ethereum);
-      return provider;
-    } catch (error) {
-      console.error("Access denied:", error);
-      return null;
-    }
-  } else {
-    console.error("MetaMask is not installed");
-    return null;
-  }
-}
+import { useRouter, usePathname } from "next/navigation";
+import { connectToMetaMask } from "@/utils/helper";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [userAddress, setUserAddress] = useState<string | null>(null);
 
   async function handleConnect() {
@@ -53,15 +36,21 @@ export default function Header() {
       const isDistributor = await supplychain.isDistributor(userAddress);
       const isPatient = await supplychain.isPatient(userAddress);
       const isPharmacy = await supplychain.isPharmacy(userAddress);
+
       if (userAddress === owner) {
+        if (pathname.includes("/admin")) return;
         router.push("/admin");
       } else if (isManufacturer) {
+        if (pathname.includes("/manufacturer")) return;
         router.push("/manufacturer");
       } else if (isDistributor) {
+        if (pathname.includes("/distributor")) return;
         router.push("/distributor");
       } else if (isPatient) {
+        if (pathname.includes("/patient")) return;
         router.push("/patient");
       } else if (isPharmacy) {
+        if (pathname.includes("/pharmacy")) return;
         router.push("/pharmacy");
       } else {
         router.push("/register");
