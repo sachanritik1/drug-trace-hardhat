@@ -4,9 +4,10 @@ import { connectToMetaMask } from "@/utils/helper";
 import { ethers } from "ethers";
 import ABI from "@/assets/abi/Supplychain.json";
 import { approveUser } from "@/app/actions";
+import { $Enums } from "@prisma/client";
 
 type Request = {
-  role: string;
+  role: $Enums.Role;
   address: string;
 };
 
@@ -22,14 +23,14 @@ export default function Approve({ request }: { request: Request }) {
         signer
       );
       let res;
-      const role = request.role.toLowerCase();
-      if (role === "manufacturer") {
+      const role = request.role;
+      if (role === $Enums.Role.MANUFACTURER) {
         res = await supplychain.addManufacturer(request.address);
-      } else if (role === "distributor") {
+      } else if (role === $Enums.Role.DISTRIBUTOR) {
         res = await supplychain.addDistributor(request.address);
-      } else if (role === "patient") {
+      } else if (role === $Enums.Role.PATIENT) {
         res = await supplychain.addPatient(request.address);
-      } else if (role === "pharmacy") {
+      } else if (role === $Enums.Role.PHARMACY) {
         res = await supplychain.addPharmacy(request.address);
       } else {
         console.log("Invalid role");
