@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import ABI from "@/assets/abi/Supplychain.json";
 import { useRouter } from "next/navigation";
-import { useRecoilState, useSetRecoilState } from "recoil";
 import { providerAtom } from "@/store/atoms";
 
 async function connectToMetaMask() {
@@ -28,11 +27,9 @@ async function connectToMetaMask() {
 export default function Header() {
   const router = useRouter();
   const [userAddress, setUserAddress] = useState<string | null>(null);
-  const setProvider = useSetRecoilState(providerAtom);
 
   async function handleConnect() {
     const provider = await connectToMetaMask();
-    setProvider(provider);
     if (!provider) return;
     const userAddress = (await provider.getSigner()).address;
     setUserAddress(userAddress);

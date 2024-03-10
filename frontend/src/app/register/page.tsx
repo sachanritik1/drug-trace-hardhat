@@ -2,13 +2,11 @@
 import { ethers } from "ethers";
 import React from "react";
 import ABI from "@/assets/abi/Supplychain.json";
-import { useRecoilValue } from "recoil";
-import { providerAtom } from "@/store/atoms";
 import { useRouter } from "next/navigation";
 
 export default function Register() {
   const addressRef = React.useRef<HTMLInputElement>(null);
-  const provider = useRecoilValue(providerAtom);
+  const provider = (window as any).ethereum;
   const router = useRouter();
   const registerUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,26 +24,38 @@ export default function Register() {
       console.error("Error registering user");
     }
   };
+
   return (
-    <div>
-      <p>Register your account here</p>
-      <form onSubmit={registerUser}>
-        <label htmlFor="role">Role:</label>
-        <select id="role" name="role">
-          <option value="manufacturer">Manufacturer</option>
-          <option value="distributor">Distributor</option>
-          <option value="pharmacy">Pharmacy</option>
-          <option value="patient">Patient</option>
-        </select>
-        <input
-          ref={addressRef}
-          type="text"
-          id="address"
-          name="address"
-          placeholder="user's public address"
-        />
-        <button type="submit">Register</button>
-      </form>
+    <div className="flex justify-center items-center mt-48">
+      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
+        <h2 className="text-2xl mb-4">Register your account here</h2>
+        <form onSubmit={registerUser} className="space-y-4">
+          <div>
+            <label
+              htmlFor="role"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Role:
+            </label>
+            <select
+              id="role"
+              name="role"
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="manufacturer">Manufacturer</option>
+              <option value="distributor">Distributor</option>
+              <option value="pharmacy">Pharmacy</option>
+              <option value="patient">Patient</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600"
+          >
+            Register
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
