@@ -13,6 +13,7 @@ export async function connectToMetaMask() {
     }
   } else {
     console.error("MetaMask is not installed");
-    return null;
+    const provider = ethers.getDefaultProvider();
+    return provider;
   }
 }
