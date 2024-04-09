@@ -16,6 +16,7 @@ export default function Approve({ request }: { request: Request }) {
     try {
       const provider = await connectToMetaMask();
       if (!provider) return;
+      // @ts-ignore
       const signer = await provider.getSigner();
       const supplychain = new ethers.Contract(
         "0xFAc3c795f09bC2ccC38071d3C428a74442132AB7",

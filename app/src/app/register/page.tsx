@@ -15,6 +15,7 @@ export default function Register() {
     try {
       const provider = await connectToMetaMask();
       if (!provider) return;
+      // @ts-ignore
       const address = (await provider.getSigner()).address;
 
       const res = await registerUser(role, address);
