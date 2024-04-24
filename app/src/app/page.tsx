@@ -13,8 +13,8 @@ export default function Home() {
           <p className="text-lg">
             The Drug is a comprehensive platform dedicated to providing reliable
             and up-to-date information about pharmaceuticals, treatments, and
-            healthcare topics. Whether you're a healthcare professional or an
-            individual seeking medical guidance, we're here to empower you with
+            healthcare topics. Whether you are a healthcare professional or an
+            individual seeking medical guidance, we are here to empower you with
             knowledge.
           </p>
         </section>

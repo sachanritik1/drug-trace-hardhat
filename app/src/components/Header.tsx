@@ -14,6 +14,7 @@ export default function Header() {
   async function handleConnect() {
     const provider = await connectToMetaMask();
     if (!provider) return;
+    //@ts-ignore
     const userAddress = (await provider.getSigner()).address;
     setUserAddress(userAddress);
   }
@@ -61,8 +62,7 @@ export default function Header() {
   }
 
   useEffect(() => {
-    if (!userAddress) return;
-    callContractFunction();
+    if (userAddress) callContractFunction();
   }, [userAddress]);
 
   return (
