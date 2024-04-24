@@ -1,3 +1,5 @@
+"use client";
+
 import { rejectUser } from "@/app/actions";
 type Request = {
   role: string;

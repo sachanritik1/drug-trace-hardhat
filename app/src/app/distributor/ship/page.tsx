@@ -45,7 +45,7 @@ export default function Ship() {
       signer
     );
 
-    const res = await supplychain.receiveDrug(id);
+    const res = await supplychain.shipLot(id);
     return res;
   };
 
