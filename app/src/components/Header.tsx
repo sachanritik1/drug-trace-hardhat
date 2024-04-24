@@ -63,7 +63,7 @@ export default function Header() {
 
   useEffect(() => {
     if (userAddress) callContractFunction();
-  }, [userAddress]);
+  });
 
   return (
     <header className="fixed top-0 left-0 right-0 px-4 py-2 bg-blue-600 text-white flex flex-col md:flex-row items-center justify-between">
